@@ -53,6 +53,7 @@ export const SettingsScreen = ({navigation, route}: SettingsProps) => {
         <GoogleSigninButton
           onPress={() => {
             GoogleSignin.configure({
+              scopes: ['https://www.googleapis.com/auth/drive.readonly'],
               offlineAccess: true,
               webClientId:
                 '1071477746439-ldva1es9o429t15c10pasvqrpjhqa466.apps.googleusercontent.com',
@@ -63,9 +64,12 @@ export const SettingsScreen = ({navigation, route}: SettingsProps) => {
                   GoogleSignin.signIn()
                     .then(userInfo => {
                       console.log(JSON.stringify(userInfo));
-                      dispatch({
-                        type: SettingsActionType.GDRIVE_CONNECTED,
-                        payload: {payload: DriveStatus.CONNECTED},
+                      GoogleSignin.getTokens().then(tokens => {
+                        console.log(JSON.stringify(tokens));
+                        dispatch({
+                          type: SettingsActionType.GDRIVE_CONNECTED,
+                          payload: {payload: tokens.accessToken},
+                        });
                       });
                     })
                     .catch(e => {
@@ -93,13 +97,13 @@ export const SettingsScreen = ({navigation, route}: SettingsProps) => {
       {state.driveStatus === DriveStatus.CONNECTED && (
         <FlatList
           data={state.driveFiles}
-          renderItem={({item, index}) => (
+          renderItem={({item}) => (
             <RemovableListItem
-              title={item}
+              title={item.name}
               remove_fn={() => {
                 dispatch({
                   type: SettingsActionType.REM_DRIVE,
-                  payload: {payload: index},
+                  payload: {payload: item},
                 });
               }}
             />

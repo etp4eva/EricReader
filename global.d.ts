@@ -11,6 +11,7 @@ type RootParamList = {
   ScreenLibrary: {books: Book[]};
   ScreenSettings: {
     driveStatus: DriveStatus;
+    driveToken: '';
     driveFiles: string[];
     localFiles: string[];
   };

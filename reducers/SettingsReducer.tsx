@@ -27,26 +27,36 @@ export enum DriveStatus {
   CONNECTED = 'CONNECTED',
 }
 
+export type GdriveFile = {
+  id: string;
+  mimeType: string;
+  name: string;
+};
+
 export interface SettingsState {
   driveStatus: DriveStatus;
-  driveFiles: string[];
+  driveToken: string;
+  driveFiles: GdriveFile[];
   localFiles: string[];
 }
 
 export const SettingsInitialState: SettingsState = {
   driveStatus: DriveStatus.DISCONNECTED,
-  driveFiles: ['/show/me/the/eggs', '/i/love/eggs/'],
+  driveToken: '',
+  driveFiles: [],
   localFiles: ['/where/did/u/hide', '/those/eggs'],
 };
 
 type SettingsPayload = {
-  [SettingsActionType.GDRIVE_CONNECTED]: {};
-  [SettingsActionType.GDRIVE_DISCONNECT]: {};
-  [SettingsActionType.ADD_DRIVE]: {
+  [SettingsActionType.GDRIVE_CONNECTED]: {
     payload: string;
   };
+  [SettingsActionType.GDRIVE_DISCONNECT]: {};
+  [SettingsActionType.ADD_DRIVE]: {
+    payload: GdriveFile;
+  };
   [SettingsActionType.REM_DRIVE]: {
-    payload: number;
+    payload: GdriveFile;
   };
   [SettingsActionType.ADD_LOCAL]: {
     payload: string;
@@ -65,9 +75,17 @@ export const SettingsReducer = (
 ): SettingsState => {
   switch (action.type) {
     case SettingsActionType.GDRIVE_CONNECTED:
-      return {...state, driveStatus: DriveStatus.CONNECTED};
+      return {
+        ...state,
+        driveStatus: DriveStatus.CONNECTED,
+        driveToken: action.payload.payload,
+      };
     case SettingsActionType.GDRIVE_DISCONNECT:
-      return {...state, driveStatus: DriveStatus.DISCONNECTED};
+      return {
+        ...state,
+        driveStatus: DriveStatus.DISCONNECTED,
+        driveToken: '',
+      };
     case SettingsActionType.ADD_LOCAL:
       return {
         ...state,
@@ -89,7 +107,7 @@ export const SettingsReducer = (
       return {
         ...state,
         driveFiles: state.driveFiles.filter(
-          (elm: string, index: number) => index !== action.payload.payload,
+          (elm: GdriveFile) => elm.id !== action.payload.payload.id,
         ),
       };
     default:

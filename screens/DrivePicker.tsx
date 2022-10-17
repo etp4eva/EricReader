@@ -1,3 +1,4 @@
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import {GDrive} from '@robinbobin/react-native-google-drive-api-wrapper';
 import ListQueryBuilder from '@robinbobin/react-native-google-drive-api-wrapper/ListQueryBuilder';
 import MimeTypes from '@robinbobin/react-native-google-drive-api-wrapper/MimeTypes';
@@ -39,6 +40,39 @@ const returnFile = (
   setModalVisible(false);
 };
 
+const listFolder = (
+  folder_id: string,
+  drive_token: string,
+  setFileList: (fileList: GdriveFile[]) => void,
+  setLoading: (isLoading: boolean) => void,
+) => {
+  const gdrive = new GDrive();
+  gdrive.accessToken = drive_token;
+  let query = new ListQueryBuilder().in(folder_id, 'parents');
+  gdrive.files
+    .list({
+      q: query,
+    })
+    .then(({files}) => {
+      let sorted: GdriveFile[] = files;
+
+      sorted.sort((a, b) => {
+        if (a.mimeType !== b.mimeType) {
+          if (a.mimeType === MimeTypes.FOLDER) {
+            return -1;
+          } else if (b.mimeType === MimeTypes.FOLDER) {
+            return 1;
+          }
+        }
+
+        return a.name.localeCompare(b.name);
+      });
+
+      setFileList(sorted);
+      setLoading(false);
+    });
+};
+
 export const DrivePicker = ({setModalVisible}: DrivePickerProps) => {
   const {state, dispatch} = useContext(SettingsContext);
   const [isLoading, setLoading] = useState(true);
@@ -47,40 +81,29 @@ export const DrivePicker = ({setModalVisible}: DrivePickerProps) => {
   const [folderStack, setFolderStack] = useState([rootFolder]);
 
   useEffect(() => {
-    const gdrive = new GDrive();
-    gdrive.accessToken = state.driveToken;
     setLoading(true);
 
-    let query = new ListQueryBuilder().in(folder.id, 'parents');
-
     try {
-      gdrive.files
-        .list({
-          // TODO: Filter out non e-book formats
-          q: query,
-        })
-        .then(({files}) => {
-          let sorted: GdriveFile[] = files;
-          sorted.sort((a, b) => {
-            if (a.mimeType !== b.mimeType) {
-              if (a.mimeType === MimeTypes.FOLDER) {
-                return -1;
-              } else if (b.mimeType === MimeTypes.FOLDER) {
-                return 1;
-              }
-            }
-
-            return a.name.localeCompare(b.name);
+      GoogleSignin.isSignedIn().then(isSignedIn => {
+        if (isSignedIn) {
+          listFolder(folder.id, state.driveToken, setFileList, setLoading);
+        } else {
+          GoogleSignin.signInSilently().then(() => {
+            GoogleSignin.getTokens().then(tokens => {
+              dispatch({
+                type: SettingsActionType.GDRIVE_CONNECTED,
+                payload: {payload: tokens.accessToken},
+              });
+              listFolder(folder.id, state.driveToken, setFileList, setLoading);
+            });
           });
-          console.log(sorted);
-          setFileList(sorted);
-          setLoading(false);
-        });
+        }
+      });
     } catch (error) {
       // TODO: Error page
       console.log(error);
     }
-  }, [folder, state.driveToken]);
+  }, [folder, state.driveToken, dispatch]);
 
   if (isLoading) {
     return (

@@ -8,7 +8,7 @@
  * @format
  */
 
-import React, {useReducer} from 'react';
+import React, {useEffect, useReducer, useState} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {ReaderScreen, ReaderTestProps} from './screens/Reader';
@@ -16,14 +16,25 @@ import {SettingsScreen} from './screens/Settings';
 import {
   SettingsReducer,
   SettingsInitialState,
+  appLaunch,
 } from './reducers/SettingsReducer';
 import {SettingsContext} from './contexts/SettingsContext';
 import {LibraryScreen, LibraryTestProps} from './screens/Library';
+import {ActivityIndicator} from 'react-native';
 
 const Root = createBottomTabNavigator<RootParamList>();
 
 const App = () => {
   const [state, dispatch] = useReducer(SettingsReducer, SettingsInitialState);
+  const [isLoading, setLoading] = useState(true);
+
+  useEffect(() => {
+    appLaunch(dispatch, setLoading);
+  }, []);
+
+  if (isLoading) {
+    return <ActivityIndicator />;
+  }
 
   return (
     <SettingsContext.Provider value={{state, dispatch}}>

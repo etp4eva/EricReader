@@ -86,15 +86,30 @@ export const DrivePicker = ({setModalVisible}: DrivePickerProps) => {
     try {
       GoogleSignin.isSignedIn().then(isSignedIn => {
         if (isSignedIn) {
-          listFolder(folder.id, state.driveToken, setFileList, setLoading);
+          listFolder(
+            folder.id,
+            state.driveAccessToken,
+            setFileList,
+            setLoading,
+          );
         } else {
           GoogleSignin.signInSilently().then(() => {
             GoogleSignin.getTokens().then(tokens => {
               dispatch({
                 type: SettingsActionType.GDRIVE_CONNECTED,
-                payload: {payload: tokens.accessToken},
+                payload: {
+                  payload: {
+                    access: tokens.accessToken,
+                    user: tokens.idToken,
+                  },
+                },
               });
-              listFolder(folder.id, state.driveToken, setFileList, setLoading);
+              listFolder(
+                folder.id,
+                state.driveAccessToken,
+                setFileList,
+                setLoading,
+              );
             });
           });
         }
@@ -103,7 +118,7 @@ export const DrivePicker = ({setModalVisible}: DrivePickerProps) => {
       // TODO: Error page
       console.log(error);
     }
-  }, [folder, state.driveToken, dispatch]);
+  }, [folder, state.driveAccessToken, dispatch]);
 
   if (isLoading) {
     return (

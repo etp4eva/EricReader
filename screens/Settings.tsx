@@ -3,13 +3,9 @@ import {FlatList, Button, View, Text, Modal} from 'react-native';
 import {BottomTabScreenProps} from '@react-navigation/bottom-tabs';
 import RemovableListItem from '../components/RemovableListItem';
 import {SettingsContext} from '../contexts/SettingsContext';
-import {DriveStatus, SettingsActionType} from '../reducers/SettingsReducer';
+import {SettingsActionType} from '../reducers/SettingsReducer';
 import {selectDirectory} from 'react-native-directory-picker';
-import {
-  GoogleSignin,
-  StatusCodes,
-  GoogleSigninButton,
-} from '@react-native-google-signin/google-signin';
+import {GoogleDriveSettings} from '../components/GoogleDriveSettings';
 import {DrivePicker} from './DrivePicker';
 
 type SettingsProps = BottomTabScreenProps<RootParamList, 'ScreenSettings'>;
@@ -27,97 +23,7 @@ export const SettingsScreen = ({navigation, route}: SettingsProps) => {
         }}>
         <DrivePicker setModalVisible={setModalVisible} />
       </Modal>
-      <Text>
-        Google Drive status:
-        {state.driveStatus === DriveStatus.CONNECTED
-          ? ' Connected'
-          : ' Disconnected'}
-      </Text>
-      {state.driveStatus === DriveStatus.CONNECTED && (
-        <Button
-          title="DISCONNECT"
-          onPress={() => {
-            try {
-              GoogleSignin.signOut();
-              dispatch({
-                type: SettingsActionType.GDRIVE_DISCONNECT,
-                payload: {payload: DriveStatus.DISCONNECTED},
-              });
-            } catch (error) {
-              console.error(error);
-            }
-          }}
-        />
-      )}
-      {state.driveStatus !== DriveStatus.CONNECTED && (
-        <GoogleSigninButton
-          onPress={() => {
-            GoogleSignin.configure({
-              scopes: ['https://www.googleapis.com/auth/drive.readonly'],
-              offlineAccess: true,
-              webClientId:
-                '1071477746439-ldva1es9o429t15c10pasvqrpjhqa466.apps.googleusercontent.com',
-            });
-            GoogleSignin.hasPlayServices()
-              .then(hasPlayService => {
-                if (hasPlayService) {
-                  GoogleSignin.signIn()
-                    .then(userInfo => {
-                      console.log(JSON.stringify(userInfo));
-                      GoogleSignin.getTokens().then(tokens => {
-                        console.log(JSON.stringify(tokens));
-                        dispatch({
-                          type: SettingsActionType.GDRIVE_CONNECTED,
-                          payload: {payload: tokens.accessToken},
-                        });
-                      });
-                    })
-                    .catch(e => {
-                      console.log('ERROR IS: ' + JSON.stringify(e));
-                      dispatch({
-                        type: SettingsActionType.GDRIVE_DISCONNECT,
-                        payload: {payload: DriveStatus.DISCONNECTED},
-                      });
-                    });
-                }
-              })
-              .catch(e => {
-                console.log('ERROR IS: ' + JSON.stringify(e));
-                dispatch({
-                  type: SettingsActionType.GDRIVE_DISCONNECT,
-                  payload: {payload: DriveStatus.DISCONNECTED},
-                });
-              });
-          }}
-        />
-      )}
-      {state.driveStatus === DriveStatus.CONNECTED && (
-        <Text>Google Drive Files / Folders</Text>
-      )}
-      {state.driveStatus === DriveStatus.CONNECTED && (
-        <FlatList
-          data={state.driveFiles}
-          renderItem={({item}) => (
-            <RemovableListItem
-              title={item.name}
-              remove_fn={() => {
-                dispatch({
-                  type: SettingsActionType.REM_DRIVE,
-                  payload: {payload: item},
-                });
-              }}
-            />
-          )}
-        />
-      )}
-      {state.driveStatus === DriveStatus.CONNECTED && (
-        <Button
-          title="Add Google Drive file"
-          onPress={() => {
-            setModalVisible(true);
-          }}
-        />
-      )}
+      <GoogleDriveSettings setModalVisible={setModalVisible} />
       <Text>Local Files / Folders</Text>
       <FlatList
         data={state.localFiles}

@@ -2,17 +2,7 @@
 // https://dev.to/elisealcala/react-context-with-usereducer-and-typescript-4obm
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
-
-type ActionMap<M extends {[index: string]: any}> = {
-  [Key in keyof M]: M[Key] extends undefined
-    ? {
-        type: Key;
-      }
-    : {
-        type: Key;
-        payload: M[Key];
-      };
-};
+import {ActionMap} from '../utils/core';
 
 export enum SettingsActionType {
   GDRIVE_INIT = 'GDRIVE_INIT',
@@ -37,12 +27,22 @@ export type GdriveFile = {
   name: string;
 };
 
+export enum LocalPathType {
+  FILE = 'FILE',
+  FOLDER = 'FOLDER',
+}
+
+export type LocalPath = {
+  type: LocalPathType;
+  path: string;
+};
+
 export interface SettingsState {
   driveStatus: DriveStatus;
   driveUser: string;
   driveAccessToken: string;
   driveFiles: GdriveFile[];
-  localFiles: string[];
+  localFiles: LocalPath[];
 }
 
 export const SettingsInitialState: SettingsState = {
@@ -50,54 +50,11 @@ export const SettingsInitialState: SettingsState = {
   driveUser: '',
   driveAccessToken: '',
   driveFiles: [],
-  localFiles: ['/where/did/u/hide', '/those/eggs'],
+  localFiles: [],
 };
-
-type SettingsPayload = {
-  [SettingsActionType.GDRIVE_INIT]: {
-    payload: {user: string; access: string; driveFiles: GdriveFile[]};
-  };
-  [SettingsActionType.GDRIVE_CONNECTED]: {
-    payload: {user: string; access: string};
-  };
-  [SettingsActionType.GDRIVE_DISCONNECT]: {};
-  [SettingsActionType.ADD_DRIVE]: {
-    payload: GdriveFile;
-  };
-  [SettingsActionType.REM_DRIVE]: {
-    payload: GdriveFile;
-  };
-  [SettingsActionType.LOCAL_INIT]: {
-    payload: string[];
-  };
-  [SettingsActionType.ADD_LOCAL]: {
-    payload: string;
-  };
-  [SettingsActionType.REM_LOCAL]: {
-    payload: number;
-  };
-};
-
-export type SettingsActions =
-  ActionMap<SettingsPayload>[keyof ActionMap<SettingsPayload>];
 
 export const ASYNC_STORAGE_PREFIX: string = 'ERIC_READER_DRIVE_USER_';
 export const ASYNC_STORAGE_LOCAL_KEY: string = 'ERIC_READER_LOCAL';
-
-export const saveSettingsState = (state: SettingsState) => {
-  try {
-    AsyncStorage.setItem(
-      ASYNC_STORAGE_PREFIX + state.driveUser,
-      JSON.stringify(state.driveFiles),
-    );
-    AsyncStorage.setItem(
-      ASYNC_STORAGE_LOCAL_KEY,
-      JSON.stringify(state.localFiles),
-    );
-  } catch (error) {
-    console.error(error);
-  }
-};
 
 export const appLaunch = (
   dispatch: React.Dispatch<SettingsActions>,
@@ -136,7 +93,8 @@ export const appLaunch = (
     .finally(() => {
       AsyncStorage.getItem(ASYNC_STORAGE_LOCAL_KEY)
         .then(result => {
-          const localFiles: string[] = result != null ? JSON.parse(result) : [];
+          const localFiles: LocalPath[] =
+            result != null ? JSON.parse(result) : [];
 
           dispatch({
             type: SettingsActionType.LOCAL_INIT,
@@ -150,6 +108,49 @@ export const appLaunch = (
         });
     });
 };
+
+export const saveSettingsState = (state: SettingsState) => {
+  try {
+    AsyncStorage.setItem(
+      ASYNC_STORAGE_PREFIX + state.driveUser,
+      JSON.stringify(state.driveFiles),
+    );
+    AsyncStorage.setItem(
+      ASYNC_STORAGE_LOCAL_KEY,
+      JSON.stringify(state.localFiles),
+    );
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+type SettingsPayload = {
+  [SettingsActionType.GDRIVE_INIT]: {
+    payload: {user: string; access: string; driveFiles: GdriveFile[]};
+  };
+  [SettingsActionType.GDRIVE_CONNECTED]: {
+    payload: {user: string; access: string};
+  };
+  [SettingsActionType.GDRIVE_DISCONNECT]: {};
+  [SettingsActionType.ADD_DRIVE]: {
+    payload: GdriveFile;
+  };
+  [SettingsActionType.REM_DRIVE]: {
+    payload: GdriveFile;
+  };
+  [SettingsActionType.LOCAL_INIT]: {
+    payload: LocalPath[];
+  };
+  [SettingsActionType.ADD_LOCAL]: {
+    payload: LocalPath;
+  };
+  [SettingsActionType.REM_LOCAL]: {
+    payload: number;
+  };
+};
+
+export type SettingsActions =
+  ActionMap<SettingsPayload>[keyof ActionMap<SettingsPayload>];
 
 export const SettingsReducer = (
   state: SettingsState,
@@ -211,7 +212,7 @@ export const SettingsReducer = (
       newState = {
         ...state,
         localFiles: state.localFiles.filter(
-          (elm: string, index: number) => index !== action.payload.payload,
+          (elm: LocalPath, index: number) => index !== action.payload.payload,
         ),
       };
       saveSettingsState(newState);

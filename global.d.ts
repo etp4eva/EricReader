@@ -1,4 +1,4 @@
-import {DriveStatus} from './reducers/SettingsReducer';
+import {DriveStatus} from './src/reducers/SettingsReducer';
 
 type Book = {
   title: string;

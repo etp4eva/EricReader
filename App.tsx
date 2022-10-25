@@ -11,25 +11,37 @@
 import React, {useEffect, useReducer, useState} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {ReaderScreen, ReaderTestProps} from './screens/Reader';
-import {SettingsScreen} from './screens/Settings';
+import {ReaderScreen, ReaderTestProps} from './src/screens/Reader';
+import {SettingsScreen} from './src/screens/Settings';
 import {
   SettingsReducer,
   SettingsInitialState,
   appLaunch,
-} from './reducers/SettingsReducer';
-import {SettingsContext} from './contexts/SettingsContext';
-import {LibraryScreen, LibraryTestProps} from './screens/Library';
+} from './src/reducers/SettingsReducer';
+import {SettingsContext} from './src/contexts/SettingsContext';
+import {LibraryScreen, LibraryTestProps} from './src/screens/Library';
 import {ActivityIndicator} from 'react-native';
+import {LibraryContext} from './src/contexts/LibraryContext';
+import {
+  LibraryInitialState,
+  LibraryReducer,
+} from './src/reducers/LibraryReducer';
 
 const Root = createBottomTabNavigator<RootParamList>();
 
 const App = () => {
-  const [state, dispatch] = useReducer(SettingsReducer, SettingsInitialState);
+  const [settingsState, settingsDispatch] = useReducer(
+    SettingsReducer,
+    SettingsInitialState,
+  );
+  const [libraryState, libraryDispatch] = useReducer(
+    LibraryReducer,
+    LibraryInitialState,
+  );
   const [isLoading, setLoading] = useState(true);
 
   useEffect(() => {
-    appLaunch(dispatch, setLoading);
+    appLaunch(settingsDispatch, setLoading);
   }, []);
 
   if (isLoading) {
@@ -37,29 +49,33 @@ const App = () => {
   }
 
   return (
-    <SettingsContext.Provider value={{state, dispatch}}>
-      <NavigationContainer>
-        <Root.Navigator initialRouteName="ScreenLibrary">
-          <Root.Screen
-            name="ScreenLibrary"
-            component={LibraryScreen}
-            options={{title: 'Library'}}
-            initialParams={LibraryTestProps}
-          />
-          <Root.Screen
-            name="ScreenSettings"
-            component={SettingsScreen}
-            options={{title: 'Settings'}}
-            initialParams={state}
-          />
-          <Root.Screen
-            name="ScreenReader"
-            component={ReaderScreen}
-            options={{title: 'Read'}}
-            initialParams={ReaderTestProps}
-          />
-        </Root.Navigator>
-      </NavigationContainer>
+    <SettingsContext.Provider
+      value={{state: settingsState, dispatch: settingsDispatch}}>
+      <LibraryContext.Provider
+        value={{state: libraryState, dispatch: libraryDispatch}}>
+        <NavigationContainer>
+          <Root.Navigator initialRouteName="ScreenLibrary">
+            <Root.Screen
+              name="ScreenLibrary"
+              component={LibraryScreen}
+              options={{title: 'Library'}}
+              initialParams={LibraryTestProps}
+            />
+            <Root.Screen
+              name="ScreenSettings"
+              component={SettingsScreen}
+              options={{title: 'Settings'}}
+              initialParams={settingsState}
+            />
+            <Root.Screen
+              name="ScreenReader"
+              component={ReaderScreen}
+              options={{title: 'Read'}}
+              initialParams={ReaderTestProps}
+            />
+          </Root.Navigator>
+        </NavigationContainer>
+      </LibraryContext.Provider>
     </SettingsContext.Provider>
   );
 };
